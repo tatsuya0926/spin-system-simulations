@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "spin-system-simulations"
+version = "0.1.0"
+description = "spin system simulations"
+authors = ["tatsuya0926 <miyata.tatsuya1209@gmail.com>"]
+readme = "README.md"
+
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+numpy = "^1.26.1"
+matplotlib = "^3.9.2"
+torch = [
+    # M3 Mac
+    { url = "https://download.pytorch.org/whl/cpu/torch-2.0.1-cp311-none-macosx_10_9_x86_64.whl", markers = "sys_platform == 'darwin'" }, 
+    # Nvidea GPU PC
+    # notebookはGPU必要で, cuda11.8を指定.
+    { url = "https://download.pytorch.org/whl/cu118/torch-2.0.1%2Bcu118-cp311-cp311-linux_x86_64.whl", markers = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+]
+ipykernel = "^6.25.2"
+tqdm = "^4.64.1"
