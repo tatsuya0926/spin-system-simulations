@@ -98,7 +98,24 @@ function ising_model(N, T, _config, move)
     return E, M, C, X
 end
 
-function ising_model_remc(N, T, _config, move)
+function set_temperature_ladder(T; num_replicas=20, method=:geom, temp_range=0.4)
+    T_low = T * (1 - temp_range)
+    T_high = T * (1 + temp_range)
+
+    if method == :geom
+        log_Ts = range(log(T_low), log(T_high), length=num_replicas)
+        T_replicas = exp.(log_Ts)
+    elseif method == :linear
+        T_replicas = range(T_low, T_high, length=num_replicas)
+    else
+        error("Unknown method: $method. Use :geom or :linear")
+    end
+
+    return collect(T_replicas)
+end
+
+
+function ising_model_remc(N, T, _config, move; is_accept_probs=false, method=:geom)
     eqSteps = 10^2
     mcSteps = 10^3
     
@@ -106,15 +123,16 @@ function ising_model_remc(N, T, _config, move)
     iT = 1.0 / T
     iT2 = iT * iT
 
-    T_low = T * 0.8
-    T_high = T * 1.2
-    T_replicas = [T_high, T, T_low]
+    T_replicas = set_temperature_ladder(T; method=method)
     betas = 1.0 ./ T_replicas
     num_replicas = length(betas)
 
     # init
     configs_tmp = [_config + _config * T_replicas[i] * 0 for i in eachindex(T_replicas)]
     configs = [copy(configs_tmp[i]) for i in 1:length(T_replicas)]
+
+    exchange_probs_sum = zeros(num_replicas - 1)
+    exchange_counts = zeros(Int, num_replicas - 1)
 
     for _ in 1:eqSteps
         for r in 1:num_replicas
@@ -149,6 +167,9 @@ function ising_model_remc(N, T, _config, move)
                 delta_energy = energy2 - energy1
                 exchange_prob = min(1.0, exp(delta_beta * delta_energy))
                 exchange_prob_val = StochasticAD.value(exchange_prob)
+
+                exchange_probs_sum[r] += exchange_prob_val
+                exchange_counts[r] += 1
         
                 if rand() < exchange_prob_val
                     configs[r], configs[r + 1] = configs[r + 1], configs[r]
@@ -161,8 +182,13 @@ function ising_model_remc(N, T, _config, move)
     M = M1 / mcSteps
     C = (E2 / mcSteps - E^2) * iT2
     X = (M2 / mcSteps - M^2) * iT
-
-    return E, M, C, X
+    exchange_prob_means = exchange_probs_sum ./ exchange_counts
+    
+    if is_accept_probs
+        return E, M, C, X, T_replicas, exchange_prob_means
+    else
+        return E, M, C, X
+    end
 end
 
 function ising_model_manyT(N, move, T=nothing)
@@ -186,6 +212,6 @@ function ising_model_manyT(N, move, T=nothing)
     return T, E, M, C, X
 end
 
-export initial_state, metropolis_sampler, independent_sampler, calc_energy, calc_mag, ising_model, ising_model_remc, ising_model_manyT
+export initial_state, metropolis_sampler, independent_sampler, calc_energy, calc_mag, ising_model, set_temperature_ladder, ising_model_remc, ising_model_manyT
 
 end

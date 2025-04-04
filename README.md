@@ -42,3 +42,38 @@ python -m ipykernel install --user --name=spin-system-simulations-py3.11
 ```bash
 poetry self add poetry-plugin-shell
 ```
+
+### Julia環境構築:
+Python仮想環境のパスを取得する。
+```bash
+poetry shell
+python -c "import sys; print(sys.executable)"
+```
+以下のようなパスが得られるので記録しておく。
+```
+/Users/***/spin-system-simulations/.venv/bin/python
+```
+Juliaプロジェクトを作成する。
+
+- `julia`と入力し、Juliaを起動
+- Juliaが起動したら `]` を押してパッケージモード`pkg>`に入る。
+- 現在の作業ディレクトリをプロジェクト名としたプロジェクトが起動する。
+```Julia
+pkg> activate .
+```
+- 以下を実行し、Project.tomlファイル上のパッケージをインストールする。
+```Julia
+(spin-system-simulations) pkg> instantiate
+```
+`pkg> status`と入力するとインストールされたパッケージが表示される。
+- Juliaから仮想環境Pythonへのパスを通す <br>
+
+`delete`を押してパッケージモードを終了し、先ほど取得したPython仮想環境のパスを通す。
+```Julia
+julia> ENV["PYTHON"] = "/Users/***/spin-system-simulations/.venv/bin/python"
+```
+その後、`]`を押して再度パッケージモードへ入り、
+```
+(spin-system-simulations) pkg> build PyCall
+```
+でPycallを再ビルドする。
